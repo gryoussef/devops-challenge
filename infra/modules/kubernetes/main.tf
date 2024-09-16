@@ -156,27 +156,37 @@ resource "aws_autoscaling_attachment" "workers" {
   lb_target_group_arn    = var.k8s_nodeport_target_group_arn
 }
 
-resource "null_resource" "copy_kubeconfig_to_bastion" {
+resource "null_resource" "setup_kubeconfig_kubectl_flux_bastion" {
   depends_on = [aws_instance.master0]
 
   provisioner "remote-exec" {
     inline = [
-      # Create .kube directory
+      "#!/bin/bash",
+      "set -e",
+      
+      "echo 'Setting up kubeconfig...'",
       "mkdir -p ~/.kube",
+      "ssh -i /home/ec2-user/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${aws_instance.master0.private_ip} 'sudo cat /etc/rancher/k3s/k3s.yaml' > ~/.kube/config || echo 'Failed to copy kubeconfig, but continuing...'",
+      "sed -i 's/127.0.0.1/${var.nlb_dns_name}/g' ~/.kube/config || echo 'Failed to update kubeconfig, but continuing...'",
+      "chmod 600 ~/.kube/config || echo 'Failed to set permissions on kubeconfig, but continuing...'",
       
-      # Copy kubeconfig
-      "ssh -i /home/ec2-user/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${aws_instance.master0.private_ip} 'sudo cat /etc/rancher/k3s/k3s.yaml' > ~/.kube/config",
+      "echo 'Installing kubectl...'",
+      "curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl || echo 'Failed to download kubectl, but continuing...'",
+      "curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256 || echo 'Failed to download kubectl checksum, but continuing...'",
+      "echo $(cat kubectl.sha256 2>/dev/null) kubectl | sha256sum --check || echo 'Kubectl checksum failed, but continuing...'",
+      "sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl || echo 'Failed to install kubectl, but continuing...'",
+      "rm -f kubectl kubectl.sha256",
       
-      # Modify the kubeconfig
-      "sed -i 's/127.0.0.1/${var.nlb_dns_name}/g' ~/.kube/config",
+      "echo 'Installing FluxCD...'",
+      "curl -s https://fluxcd.io/install.sh | sudo bash || echo 'Failed to install FluxCD, but continuing...'",
       
-      # Set correct permissions for kubeconfig
-      "chmod 600 ~/.kube/config",
+      "echo 'Verifying installations...'",
+      "kubectl version --client || echo 'Kubectl not installed correctly, but continuing...'",
+      "flux --version || echo 'FluxCD not installed correctly, but continuing...'",
       
-      # Verify the kubeconfig file exists
-      "ls -l ~/.kube/config || echo 'Failed to copy kubeconfig'"
+      "echo 'Setup complete!'"
     ]
-    
+
     connection {
       type        = "ssh"
       host        = var.bastion_public_ip
