@@ -1,0 +1,22 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: bird-app
+  namespace: default
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./deploy/helm
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  values:
+    replicaCount: 2
+    birdApi:
+      image: "gryoussef/bird-api:latest"
+      port: 4201
+    birdImageApi:
+      image: "gryoussef/bird-image-api:latest"
+      port: 4200
