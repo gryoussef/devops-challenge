@@ -1,2 +1,5 @@
 bird/getBird
 birdImage/getBirdImage
+infra/.terraform
+infra/keys
+infra/terraform.tfvars

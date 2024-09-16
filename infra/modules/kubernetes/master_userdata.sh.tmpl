@@ -1,0 +1,15 @@
+#!/bin/bash
+TOKEN="${k3s_token}"
+%{ if is_first_master }
+# First master node: Initialize the cluster
+curl -sfL https://get.k3s.io | sh -s - server \
+  --token="$TOKEN" \
+  --cluster-init \
+  --tls-san="${nlb_dns_name}" \
+%{ else }
+# Subsequent master nodes: Join the cluster
+curl -sfL https://get.k3s.io | sh -s - server \
+  --token="$TOKEN" \
+  --server https://${first_master_private_ip}:6443 \
+  --tls-san="${nlb_dns_name}" \
+%{ endif }

@@ -1,0 +1,5 @@
+#!/bin/bash
+TOKEN="${k3s_token}"
+K3S_URL="https://${nlb_dns_name}:6443"
+export K3S_URL K3S_TOKEN="$TOKEN"
+curl -sfL https://get.k3s.io | sh -
