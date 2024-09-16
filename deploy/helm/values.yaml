@@ -1,0 +1,15 @@
+replicaCount: 2
+
+birdApi:
+  image: "gryoussef/bird-api:latest"
+  port: 4201
+
+birdImageApi:
+  image: "gryoussef/bird-image-api:latest"
+  port: 4200
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /bird
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-bird-api
+                port:
+                  number: {{ .Values.birdApi.port }}
+          - path: /bird-image
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-bird-image-api
+                port:
+                  number: {{ .Values.birdImageApi.port }}

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-bird-image-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: bird-image-api
+  template:
+    metadata:
+      labels:
+        app: bird-image-api
+    spec:
+      containers:
+        - name: bird-image-api
+          image: {{ .Values.birdImageApi.image }}
+          ports:
+            - containerPort: {{ .Values.birdImageApi.port }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
