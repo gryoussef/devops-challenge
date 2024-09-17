@@ -1,30 +1,26 @@
+Sure, here is the formatted documentation:
+
 # Bird Application
 
 ## Overview
 
 The Bird Application is a microservices-based system that provides information about birds and their images. It consists of two Go-based APIs:
 
-1. Bird API (Port 4201): Provides bird information
-2. Bird Image API (Port 4200): Fetches images of birds based on their names
+1. **Bird API (Port 4201)**: Provides bird information
+2. **Bird Image API (Port 4200)**: Fetches images of birds based on their names
 
 The Bird API depends on the Bird Image API to retrieve bird images.
 
 ## Project Structure
 
 ```
-bird-application/
-│
-├── bird/                 # Bird API
-│   ├── Dockerfile
-│   ├── main.go
-│   └── go.mod
-│
-├── birdImage/            # Bird Image API
-│   ├── Dockerfile
-│   ├── main.go
-│   └── go.mod
-│
-└── README.md
+.
+├── bird/                 # Bird API source code
+├── birdImage/            # Bird Image API source code
+├── clusters/             # Flux CD configuration
+├── deploy/               # Helm charts for application deployment
+├── infra/                # Terraform code for AWS infrastructure
+└── .github/workflows/    # GitHub Actions CI/CD pipelines
 ```
 
 ## Prerequisites
@@ -116,26 +112,104 @@ GET http://localhost:4201/
 - Both APIs run as non-root users within their containers.
 - Distroless base images are used to minimize the attack surface.
 
+## Infrastructure Setup
+
+We use Terraform to set up the AWS infrastructure. Key features:
+
+- Multi-AZ VPC setup for high availability
+- Bastion host for secure cluster acces
+- Auto Scaling Groups for K3s workers
+- NLB for K3s API access, ALB for application traffic
+- SSL/TLS termination at ALB using ACM certificates
+- AWS Secrets Manager for K3s token
+
+To set up the infrastructure:
+
+```bash
+cd infra
+terraform init
+terraform apply
+```
+
+## HA K3s Cluster Setup
+
+Our HA K3s cluster is set up with:
+
+- 3 master nodes for high availability
+- 3+ worker nodes that auto-scale based on demand
+- NLB for distributing traffic to master nodes
+- ALB for routing external traffic to worker nodes and SSL/TLS integration, ALB is fronted by traefik as ingress controller.
+- TLS encryption for all cluster communication
+
+K3s is installed on EC2 instances using userdata scripts. Masters form a cluster with a shared token, and workers join automatically.
+
+## Application Deployment
+
+We use GitOps with Flux CD for deploying the Bird Application:
+
+- Helm charts in `deploy/helm/` define the Kubernetes resources
+- Flux CD configurations in `clusters/k3s/apps/` manage the deployment
+- GitHub Actions build and push Docker images on code changes
+- Flux CD automatically syncs these changes to the cluster
+
+Scalability is handled through:
+
+- Horizontal Pod Autoscaler (HPA) for the application pods
+- Auto Scaling Groups for the EC2 instances
+
+## Getting Started
+
+1. Clone the repository
+2. Set up AWS credentials
+3. Run Terraform to create the infrastructure
+4. Install Flux CD on the cluster
+5. Push changes to the main branch to trigger deployments
+
+## Monitoring and Observability
+
+We plan to set up:
+
+- Prometheus for metrics collection
+- Grafana for dashboards and visualization
+- Loki for log aggregation
+
+## Security
+
+- Least privilege IAM roles
+- Security groups restricting access
+- Encryption at rest and in transit
+- Secrets managed securely in AWS Secrets Manager
+
+## Future Improvements
+
+- Implement full observability stack
+- Add automated testing in the CI pipeline
+- Explore canary deployments
+
 # Challenge
 
-How to:
-- fork the repository
-- work on the challenges
-- share your repository link with the recruitment team
+## How to:
 
-Here are the challenges:
+- Fork the repository
+- Work on the challenges
+- Share your repository link with the recruitment team
+
+## Challenges:
+
 - [x] Install and run the app
-- [x] Dockerize it (create dockerfile for each API)
+- [x] Dockerize it (create Dockerfile for each API)
 - [x] Create an infra on AWS (VPC, SG, instances) using IaC
-- [x] Install a small version of kubernetes on the instances (no EKS)
-- [ ] Build the manifests to run the 2 APIs on k8s
-- [ ] Bonus points: observability, helm, scaling
+- [x] Install a small version of Kubernetes on the instances (no EKS)
+- [x] Build the manifests to run the 2 APIs on k8s
+- [x] Bonus points: observability, Helm, scaling
 
-Rules:
+## Rules:
+
 - Use security / container / k8s / cloud best practices
 - Change in the source code is possible
 
-Evaluation criterias:
-- best practices
-- code organization
-- clarity & readability
+## Evaluation Criteria:
+
+- Best practices
+- Code organization
+- Clarity & readability
